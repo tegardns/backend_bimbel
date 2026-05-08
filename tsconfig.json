@@ -7,8 +7,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "outDir": "dist"
+    "rootDir": "./src",
+    "outDir": "dist",
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }
