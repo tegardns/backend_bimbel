@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabase } from "../lib/supabase";
+import axios from "axios"; // Pastikan sudah npm install axios
 
 export const studentsRouter = Router();
 
+// 1. Schema Tetap Sama
 const studentSchema = z.object({
   studentName: z.string().min(1),
   parentName: z.string().min(1),
@@ -20,6 +22,34 @@ const studentSchema = z.object({
   referralOther: z.string().optional().or(z.literal("")),
 });
 
+// 2. Infer type untuk TypeScript
+type StudentData = z.infer<typeof studentSchema>;
+
+// 3. Fungsi Forwarding WA (Tanpa merusak flow utama)
+const sendWaNotification = async (data: StudentData) => {
+  try {
+    const message = `... isi pesan lo ...`;
+
+    await axios.post(
+      "https://api.fonnte.com/send",
+      {
+        // Mengambil nomor WA dari Environment Variable
+        target: process.env.ADMIN_WA_NUMBER,
+        message: message,
+        countryCode: "62",
+      },
+      {
+        headers: {
+          // Mengambil token dari Environment Variable
+          Authorization: process.env.FONNTE_TOKEN || "",
+        },
+      },
+    );
+  } catch (err: any) {
+    console.error("WA Forwarding Failed:", err.response?.data || err.message);
+  }
+};
+
 studentsRouter.post("/", async (req, res) => {
   try {
     const parsed = studentSchema.safeParse(req.body);
@@ -34,6 +64,7 @@ studentsRouter.post("/", async (req, res) => {
 
     const data = parsed.data;
 
+    // Simpan ke Supabase (Fitur Asli)
     const { error } = await supabase.from("students").insert([
       {
         student_name: data.studentName,
@@ -61,6 +92,10 @@ studentsRouter.post("/", async (req, res) => {
       });
     }
 
+    // --- TAMBAHAN FITUR: Forward ke WA ---
+    // Dipanggil tanpa 'await' supaya respons ke user tetap kencang (non-blocking)
+    sendWaNotification(data);
+
     return res.status(201).json({
       success: true,
       message: "Pendaftaran siswa berhasil disimpan",
@@ -74,6 +109,7 @@ studentsRouter.post("/", async (req, res) => {
   }
 });
 
+// 4. Fitur GET Tetap Utuh
 studentsRouter.get("/", async (_req, res) => {
   try {
     const { data, error } = await supabase
