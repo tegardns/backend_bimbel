@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { supabase } from "../lib/supabase";
+import { sendFonnteMessage } from "../lib/fonnte";
+import { env } from "../config/env";
 
 export const tutorsRouter = Router();
 
@@ -56,6 +58,25 @@ tutorsRouter.post("/", async (req, res) => {
         error: error.message,
       });
     }
+
+    const waMessage = `👨‍🏫 *Pendaftaran Tutor Baru*
+
+Nama: ${data.name}
+Email: ${data.email}
+No HP: ${data.phone}
+Pendidikan: ${data.education}
+Mapel: ${data.subject}
+Level Mengajar: ${data.teachingLevel}
+Pengalaman: ${data.experience}
+Motivasi: ${data.motivation}
+`;
+
+    void sendFonnteMessage({
+      target: env.fonnteAdminTargets,
+      message: waMessage,
+    }).catch((err) => {
+      console.error("Gagal kirim WA admin (tutors):", err);
+    });
 
     return res.status(201).json({
       success: true,

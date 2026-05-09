@@ -1,19 +1,3 @@
-// import dotenv from "dotenv";
-
-// dotenv.config();
-
-// export const env = {
-//   port: Number(process.env.PORT || 4000),
-//   corsOrigin: process.env.CORS_ORIGIN || "https://bimbelsaka.vercel.app",
-//   supabaseUrl: process.env.SUPABASE_URL || "",
-//   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-//   jwtSecret: process.env.JWT_SECRET || "",
-// };
-
-// if (!env.supabaseUrl || !env.supabaseServiceRoleKey || !env.jwtSecret) {
-//   throw new Error("Env backend belum lengkap");
-// }
-
 import "dotenv/config";
 import { z } from "zod";
 
@@ -28,6 +12,9 @@ const envSchema = z.object({
     .string()
     .min(1, "SUPABASE_SERVICE_ROLE_KEY wajib diisi"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET wajib diisi"),
+
+  FONNTE_TOKEN: z.string().min(1, "FONNTE_TOKEN wajib diisi"),
+  FONNTE_ADMIN_TARGETS: z.string().min(1, "FONNTE_ADMIN_TARGETS wajib diisi"),
 });
 
 const result = envSchema.safeParse(process.env);
@@ -45,4 +32,6 @@ export const env = {
   supabaseUrl: result.data.SUPABASE_URL,
   supabaseServiceRoleKey: result.data.SUPABASE_SERVICE_ROLE_KEY,
   jwtSecret: result.data.JWT_SECRET,
+  fonnteToken: result.data.FONNTE_TOKEN,
+  fonnteAdminTargets: result.data.FONNTE_ADMIN_TARGETS,
 };
