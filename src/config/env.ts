@@ -14,7 +14,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1, "JWT_SECRET wajib diisi"),
 
   FONNTE_TOKEN: z.string().min(1, "FONNTE_TOKEN wajib diisi"),
-  FONNTE_ADMIN_TARGETS: z.string().min(1, "FONNTE_ADMIN_TARGETS wajib diisi"),
+  ADMIN_WA_NUMBER: z.string().min(1, "ADMIN_WA_NUMBER wajib diisi"),
 });
 
 const result = envSchema.safeParse(process.env);
@@ -33,5 +33,5 @@ export const env = {
   supabaseServiceRoleKey: result.data.SUPABASE_SERVICE_ROLE_KEY,
   jwtSecret: result.data.JWT_SECRET,
   fonnteToken: result.data.FONNTE_TOKEN,
-  fonnteAdminTargets: result.data.FONNTE_ADMIN_TARGETS,
+  fonnteAdminTargets: result.data.ADMIN_WA_NUMBER,
 };

@@ -97,30 +97,23 @@ Catatan: ${data.notes || "-"}
   }
 });
 
-studentsRouter.get("/", async (_req, res) => {
+studentsRouter.get("/test-wa", async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from("students")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      return res.status(500).json({
-        success: false,
-        message: "Gagal mengambil data siswa",
-        error: error.message,
-      });
-    }
+    const result = await sendFonnteMessage({
+      target: env.fonnteAdminTargets,
+      message: "🔥 TEST WA BERHASIL DARI BIMBEL",
+    });
 
     return res.json({
       success: true,
-      data,
+      result,
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan server",
+      error: String(err),
     });
   }
 });
