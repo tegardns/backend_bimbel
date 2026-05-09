@@ -56,6 +56,8 @@ studentsRouter.post("/", async (req, res) => {
     ]);
 
     if (error) {
+      console.error("STUDENT INSERT ERROR:", error);
+
       return res.status(500).json({
         success: false,
         message: "Gagal menyimpan data siswa",
@@ -90,6 +92,38 @@ Catatan: ${data.notes || "-"}
     });
   } catch (err) {
     console.error(err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan server",
+    });
+  }
+});
+
+studentsRouter.get("/", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("STUDENT GET ERROR:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Gagal mengambil data siswa",
+        error: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    console.error(err);
+
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
