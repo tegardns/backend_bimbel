@@ -14,50 +14,47 @@ function normalizeTargets(target: string) {
 }
 
 export async function sendFonnteMessage({ target, message }: SendFonnteParams) {
-  const normalizedTarget = normalizeTargets(target);
-
-  console.log("Mengirim WA ke:", normalizedTarget);
-
-  const body = new URLSearchParams({
-    target: normalizedTarget,
-    message,
-    countryCode: "0",
-  });
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
-
   try {
+    const normalizedTarget = normalizeTargets(target);
+
+    console.log("Mengirim WA ke:", normalizedTarget);
+
+    const body = new URLSearchParams({
+      target: normalizedTarget,
+      message,
+      countryCode: "0",
+    });
+
+    const controller = new AbortController();
+
+    // timeout diperkecil supaya Vercel gak nge-hang
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 10000);
+
     const response = await fetch("https://api.fonnte.com/send", {
       method: "POST",
       headers: {
         Authorization: env.fonnteToken,
         "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
       },
       body,
       signal: controller.signal,
     });
 
+    clearTimeout(timeout);
+
     const text = await response.text();
-    console.log("FONNTE RAW RESPONSE:", text);
 
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`Response Fonnte bukan JSON valid: ${text}`);
-    }
+    console.log("FONNTE RESPONSE:", text);
 
-    if (!response.ok || data.status === false) {
-      throw new Error(data.reason || "Gagal kirim WA");
-    }
-
-    return data;
+    // jangan throw error lagi
+    return true;
   } catch (err) {
     console.error("FONNTE ERROR:", err);
-    throw err;
-  } finally {
-    clearTimeout(timeout);
+
+    // IMPORTANT:
+    // jangan throw
+    return false;
   }
 }

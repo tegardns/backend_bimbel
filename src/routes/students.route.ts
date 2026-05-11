@@ -77,18 +77,24 @@ Program: ${data.program}
 Metode: ${data.method}
 Mapel: ${data.subjects}
 Catatan: ${data.notes || "-"}
+
+Sumber Info: ${data.referralSource || "-"}
+Nama Teman: ${data.referralFriendName || "-"}
+Keterangan Lain: ${data.referralOther || "-"}
 `;
 
-    void sendFonnteMessage({
-      target: env.fonnteAdminTargets,
-      message: waMessage,
-    }).catch((err) => {
-      console.error("Gagal kirim WA admin (students):", err);
-    });
-
-    return res.status(201).json({
+    // RESPONSE DULU
+    res.status(201).json({
       success: true,
       message: "Pendaftaran siswa berhasil disimpan",
+    });
+
+    // BACKGROUND WA
+    setImmediate(() => {
+      sendFonnteMessage({
+        target: env.fonnteAdminTargets,
+        message: waMessage,
+      });
     });
   } catch (err) {
     console.error(err);

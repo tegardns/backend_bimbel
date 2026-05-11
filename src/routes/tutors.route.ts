@@ -15,9 +15,12 @@ const tutorSchema = z.object({
   education: z.string().min(1, "Pendidikan wajib diisi"),
   subject: z.string().min(1, "Mapel wajib diisi"),
   teachingLevel: z.string().min(1, "Level mengajar wajib diisi"),
-  // experience: z.string().min(1, "Pengalaman wajib diisi"),
+
+  // optional
   experience: z.string().optional().or(z.literal("")),
+
   address: z.string().min(1, "Alamat wajib diisi"),
+
   referralSource: z.string().optional().or(z.literal("")),
   referralFriendName: z.string().optional().or(z.literal("")),
   referralOther: z.string().optional().or(z.literal("")),
@@ -105,6 +108,7 @@ tutorsRouter.post(
       const cvFileName = `${safeName || "tutor"}-${uniqueId}.pdf`;
       const transcriptFileName = `${safeName || "tutor"}-${uniqueId}-transcript.pdf`;
 
+      // upload CV
       const { error: cvUploadError } = await supabase.storage
         .from("cv_tutor")
         .upload(cvFileName, cvFile.buffer, {
@@ -120,6 +124,7 @@ tutorsRouter.post(
         });
       }
 
+      // upload transkrip
       const { error: transcriptUploadError } = await supabase.storage
         .from("transkrip_nilai")
         .upload(transcriptFileName, transcriptFile.buffer, {
@@ -135,6 +140,7 @@ tutorsRouter.post(
         });
       }
 
+      // ambil public URL
       const { data: cvPublic } = supabase.storage
         .from("cv_tutor")
         .getPublicUrl(cvFileName);
@@ -146,6 +152,7 @@ tutorsRouter.post(
       const cvUrl = cvPublic.publicUrl;
       const transcriptUrl = transcriptPublic.publicUrl;
 
+      // simpan DB
       const { error: dbError } = await supabase
         .from("tutor_applications")
         .insert([
@@ -156,7 +163,7 @@ tutorsRouter.post(
             education: data.education,
             subject: data.subject,
             teaching_level: data.teachingLevel,
-            experience: data.experience,
+            experience: data.experience || null,
             address: data.address,
             cv_file_url: cvUrl,
             transcript_file_url: transcriptUrl,
@@ -175,6 +182,7 @@ tutorsRouter.post(
         });
       }
 
+      // WA message
       const waMessage = `👨‍🏫 *Pendaftaran Tutor Baru*
 
 Nama: ${data.name}
@@ -184,7 +192,10 @@ Pendidikan: ${data.education}
 Mapel: ${data.subject}
 Level Mengajar: ${data.teachingLevel}
 Alamat: ${data.address}
-Pengalaman: ${data.experience || "-"}
+
+Pengalaman:
+${data.experience || "-"}
+
 Sumber Info: ${data.referralSource || "-"}
 Nama Teman: ${data.referralFriendName || "-"}
 Keterangan Lain: ${data.referralOther || "-"}
@@ -198,11 +209,11 @@ Klik untuk lihat file
 ${transcriptUrl}
 `;
 
-      void sendFonnteMessage({
+      // coba kirim WA
+      // kalau gagal tidak bikin request gagal
+      await sendFonnteMessage({
         target: env.fonnteAdminTargets,
         message: waMessage,
-      }).catch((err) => {
-        console.error("Gagal kirim WA admin (tutors):", err);
       });
 
       return res.status(201).json({
@@ -211,6 +222,7 @@ ${transcriptUrl}
       });
     } catch (err) {
       console.error(err);
+
       return res.status(500).json({
         success: false,
         message: "Terjadi kesalahan server",
@@ -240,6 +252,7 @@ tutorsRouter.get("/", async (_req, res) => {
     });
   } catch (err) {
     console.error(err);
+
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
