@@ -137,23 +137,23 @@ studentsRouter.get("/", async (_req, res) => {
   }
 });
 
-studentsRouter.get("/test-wa", async (_req, res) => {
-  try {
-    const result = await sendFonnteMessage({
-      target: env.fonnteAdminTargets,
-      message: "🔥 TEST WA BERHASIL DARI BIMBEL",
-    });
+// studentsRouter.get("/test-wa", async (_req, res) => {
+//   try {
+//     const result = await sendFonnteMessage({
+//       target: env.fonnteAdminTargets,
+//       message: "🔥 TEST WA BERHASIL DARI BIMBEL",
+//     });
 
-    return res.json({
-      success: true,
-      result,
-    });
-  } catch (err) {
-    console.error(err);
+//     return res.json({
+//       success: true,
+//       result,
+//     });
+//   } catch (err) {
+//     console.error(err);
 
-    return res.status(500).json({
-      success: false,
-      error: String(err),
-    });
-  }
-});
+//     return res.status(500).json({
+//       success: false,
+//       error: String(err),
+//     });
+//   }
+// });
