@@ -7,15 +7,15 @@ import { env } from "../config/env";
 export const studentsRouter = Router();
 
 const studentSchema = z.object({
-  studentName: z.string().min(1),
-  parentName: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().min(1),
-  grade: z.string().min(1),
-  program: z.string().min(1),
-  method: z.string().min(1),
-  subjects: z.string().min(1),
+  studentName: z.string().min(1, "Nama siswa wajib diisi"),
+  parentName: z.string().min(1, "Nama wali wajib diisi"),
+  phone: z.string().min(1, "Nomor HP wajib diisi"),
+  email: z.string().email("Email tidak valid").optional().or(z.literal("")),
+  address: z.string().min(1, "Alamat wajib diisi"),
+  grade: z.string().min(1, "Kelas wajib diisi"),
+  program: z.string().min(1, "Program wajib diisi"),
+  method: z.string().min(1, "Metode wajib diisi"),
+  subjects: z.string().min(1, "Mata pelajaran wajib diisi"),
   notes: z.string().optional().or(z.literal("")),
   referralSource: z.string().optional().or(z.literal("")),
   referralFriendName: z.string().optional().or(z.literal("")),
@@ -57,7 +57,6 @@ studentsRouter.post("/", async (req, res) => {
 
     if (error) {
       console.error("STUDENT INSERT ERROR:", error);
-
       return res.status(500).json({
         success: false,
         message: "Gagal menyimpan data siswa",
@@ -83,22 +82,17 @@ Nama Teman: ${data.referralFriendName || "-"}
 Keterangan Lain: ${data.referralOther || "-"}
 `;
 
-    // RESPONSE DULU
-    res.status(201).json({
+    await sendFonnteMessage({
+      target: env.fonnteAdminTargets,
+      message: waMessage,
+    });
+
+    return res.status(201).json({
       success: true,
       message: "Pendaftaran siswa berhasil disimpan",
     });
-
-    // BACKGROUND WA
-    setImmediate(() => {
-      sendFonnteMessage({
-        target: env.fonnteAdminTargets,
-        message: waMessage,
-      });
-    });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
@@ -115,7 +109,6 @@ studentsRouter.get("/", async (_req, res) => {
 
     if (error) {
       console.error("STUDENT GET ERROR:", error);
-
       return res.status(500).json({
         success: false,
         message: "Gagal mengambil data siswa",
@@ -129,7 +122,6 @@ studentsRouter.get("/", async (_req, res) => {
     });
   } catch (err) {
     console.error(err);
-
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan server",
@@ -137,23 +129,22 @@ studentsRouter.get("/", async (_req, res) => {
   }
 });
 
-// studentsRouter.get("/test-wa", async (_req, res) => {
-//   try {
-//     const result = await sendFonnteMessage({
-//       target: env.fonnteAdminTargets,
-//       message: "🔥 TEST WA BERHASIL DARI BIMBEL",
-//     });
+studentsRouter.get("/test-wa", async (_req, res) => {
+  try {
+    const result = await sendFonnteMessage({
+      target: env.fonnteAdminTargets,
+      message: "🔥 TEST WA SISWA BERHASIL DARI BIMBEL",
+    });
 
-//     return res.json({
-//       success: true,
-//       result,
-//     });
-//   } catch (err) {
-//     console.error(err);
-
-//     return res.status(500).json({
-//       success: false,
-//       error: String(err),
-//     });
-//   }
-// });
+    return res.json({
+      success: true,
+      result,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      error: String(err),
+    });
+  }
+});
