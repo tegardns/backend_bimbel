@@ -3,66 +3,82 @@ import { z } from "zod";
 import { supabase } from "../lib/supabase";
 import { sendFonnteMessage } from "../lib/fonnte";
 import { env } from "../config/env";
+import {
+  evaluateCoverage,
+  getDistrictsByCity,
+  normalizeWaNumber,
+  type CoverageCity,
+  type CoverageLevel,
+} from "../config/coverage";
 
 export const coverageRouter = Router();
 
-const DISTRICTS_DATA = [
-  { name: "Purbalingga", distance: 0.5 },
-  { name: "Kalimanah", distance: 3.2 },
-  { name: "Padamara", distance: 4.1 },
-  { name: "Bojongsari", distance: 4.8 },
-  { name: "Kutasari", distance: 4.9 },
-  { name: "Mrebet", distance: 8.5 },
-  { name: "Bukateja", distance: 10.2 },
-  { name: "Kaligondang", distance: 7.4 },
-  { name: "Kejobong", distance: 15.6 },
-  { name: "Kemangkon", distance: 12.1 },
-  { name: "Kertanegara", distance: 18.3 },
-  { name: "Karanganyar", distance: 20.1 },
-  { name: "Karangmoncol", distance: 24.5 },
-  { name: "Karangreja", distance: 28.0 },
-  { name: "Karangjambu", distance: 32.0 },
-  { name: "Bobotsari", distance: 14.2 },
-  { name: "Pengadegan", distance: 16.5 },
-  { name: "Rembang", distance: 26.0 },
-];
+const citySchema = z.enum(["Purbalingga", "Purwokerto"]);
+const levelSchema = z.enum(["Calistung", "SD", "SMP", "SMA"]);
 
-const requestSchema = z.object({
-  waNumber: z.string().min(8),
-  district: z.string().min(1),
-  level: z.string().min(1),
+const districtsQuerySchema = z.object({
+  city: citySchema,
 });
 
-coverageRouter.post("/check", async (req, res) => {
-  try {
-    const { district } = req.body;
+const checkSchema = z.object({
+  city: citySchema,
+  district: z.string().min(1, "Kecamatan wajib diisi"),
+  level: levelSchema,
+});
 
-    const found = DISTRICTS_DATA.find(
-      (d) => d.name.toLowerCase() === district.toLowerCase(),
-    );
+const requestSchema = z.object({
+  city: citySchema,
+  district: z.string().min(1, "Kecamatan wajib diisi"),
+  level: levelSchema,
+  waNumber: z.string().min(5, "Nomor WA wajib diisi"),
+});
 
-    if (!found) {
-      return res.status(404).json({
-        success: false,
-        message: "Wilayah tidak ditemukan",
-      });
-    }
+coverageRouter.get("/districts", (req, res) => {
+  const parsed = districtsQuerySchema.safeParse(req.query);
 
-    const available = found.distance <= 10;
-
-    return res.json({
-      success: true,
-      available,
-      distance: found.distance,
-    });
-  } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
+  if (!parsed.success) {
+    return res.status(400).json({
       success: false,
-      message: "Terjadi kesalahan server",
+      message: "Validasi gagal",
+      errors: parsed.error.flatten().fieldErrors,
     });
   }
+
+  const city = parsed.data.city as CoverageCity;
+
+  return res.json({
+    success: true,
+    data: getDistrictsByCity(city).map((district) => ({
+      ...district,
+      available: district.distanceKm <= env.coverageRadiusKm,
+    })),
+  });
+});
+
+coverageRouter.post("/check", (req, res) => {
+  const parsed = checkSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Validasi gagal",
+      errors: parsed.error.flatten().fieldErrors,
+    });
+  }
+
+  const { city, district, level } = parsed.data;
+
+  const result = evaluateCoverage({
+    city,
+    district,
+    level: level as CoverageLevel,
+    radiusKm: env.coverageRadiusKm,
+  });
+
+  return res.json({
+    success: true,
+    data: result,
+  });
 });
 
 coverageRouter.post("/request", async (req, res) => {
@@ -72,66 +88,95 @@ coverageRouter.post("/request", async (req, res) => {
     if (!parsed.success) {
       return res.status(400).json({
         success: false,
+        message: "Validasi gagal",
         errors: parsed.error.flatten().fieldErrors,
       });
     }
 
-    const data = parsed.data;
+    const city = parsed.data.city as CoverageCity;
+    const waNumber = normalizeWaNumber(parsed.data.waNumber);
 
-    const found = DISTRICTS_DATA.find(
-      (d) => d.name.toLowerCase() === data.district.toLowerCase(),
-    );
+    const result = evaluateCoverage({
+      city,
+      district: parsed.data.district,
+      level: parsed.data.level as CoverageLevel,
+      radiusKm: env.coverageRadiusKm,
+    });
 
-    if (!found) {
-      return res.status(404).json({
+    if (!waNumber) {
+      return res.status(400).json({
         success: false,
-        message: "Wilayah tidak ditemukan",
+        message: "Nomor WA tidak valid",
       });
     }
 
-    const available = found.distance <= 5;
+    if (!result.available) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        data: result,
+      });
+    }
 
-    const { error } = await supabase.from("coverage_requests").insert([
-      {
-        wa_number: data.waNumber,
-        district: found.name,
-        distance_km: found.distance,
-        level: data.level,
-        available,
-      },
-    ]);
+    const { data: inserted, error: insertError } = await supabase
+      .from("coverage_requests")
+      .insert([
+        {
+          city: result.city,
+          wa_number: waNumber,
+          district: result.district,
+          distance_km: result.distanceKm,
+          level: result.level,
+          available: result.available,
+          notification_sent: false,
+        },
+      ])
+      .select("*")
+      .single();
 
-    if (error) {
+    if (insertError) {
       return res.status(500).json({
         success: false,
-        message: "Gagal menyimpan request",
-        error: error.message,
+        message: "Gagal menyimpan request coverage",
+        error: insertError.message,
       });
     }
 
     const waMessage = `📍 *Request Cek Ketersediaan Tutor*
 
-Nomor WA: ${data.waNumber}
-Wilayah: ${found.name}
-Jarak: ${found.distance} KM
-Jenjang: ${data.level}
+Kota: ${result.city}
+Wilayah: ${result.district}
+Jarak: ${result.distanceKm} KM
+Jenjang: ${result.level}
+No WA: ${waNumber}
 
-Status:
-${available ? "✅ TERSEDIA" : "❌ BELUM TERSEDIA"}
+Status: ${result.message}
 `;
 
-    await sendFonnteMessage({
+    const waSent = await sendFonnteMessage({
       target: env.fonnteAdminTargets,
       message: waMessage,
     });
 
+    await supabase
+      .from("coverage_requests")
+      .update({
+        notification_sent: waSent,
+      })
+      .eq("id", inserted.id);
+
     return res.json({
       success: true,
-      available,
-      message: "Request berhasil dikirim",
+      message: waSent
+        ? "Request berhasil dikirim"
+        : "Request tersimpan, tapi notifikasi admin gagal dikirim",
+      data: {
+        id: inserted.id,
+        notificationSent: waSent,
+      },
     });
   } catch (err) {
-    console.error(err);
+    console.error("COVERAGE REQUEST ERROR:", err);
 
     return res.status(500).json({
       success: false,

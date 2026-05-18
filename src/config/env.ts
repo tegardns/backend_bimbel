@@ -12,9 +12,9 @@ const envSchema = z.object({
     .string()
     .min(1, "SUPABASE_SERVICE_ROLE_KEY wajib diisi"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET wajib diisi"),
-
   FONNTE_TOKEN: z.string().min(1, "FONNTE_TOKEN wajib diisi"),
   ADMIN_WA_NUMBER: z.string().min(1, "ADMIN_WA_NUMBER wajib diisi"),
+  COVERAGE_RADIUS_KM: z.coerce.number().default(10),
 });
 
 const result = envSchema.safeParse(process.env);
@@ -34,4 +34,5 @@ export const env = {
   jwtSecret: result.data.JWT_SECRET,
   fonnteToken: result.data.FONNTE_TOKEN,
   fonnteAdminTargets: result.data.ADMIN_WA_NUMBER,
+  coverageRadiusKm: result.data.COVERAGE_RADIUS_KM,
 };
