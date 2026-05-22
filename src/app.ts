@@ -6,6 +6,7 @@ import { studentsRouter } from "./routes/students.route";
 import { tutorsRouter } from "./routes/tutors.route";
 import { articlesRouter } from "./routes/articles.route";
 import { coverageRouter } from "./routes/coverage.routes";
+import { quickRegistrationRouter } from "./routes/quick-registration.routes";
 
 const app = express();
 
@@ -24,5 +25,6 @@ app.use("/api/students", studentsRouter);
 app.use("/api/tutors", tutorsRouter);
 app.use("/api/articles", articlesRouter);
 app.use("/api/coverage", coverageRouter);
+app.use("/api/quick-registration", quickRegistrationRouter);
 
 export { app };
