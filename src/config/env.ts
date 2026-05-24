@@ -15,6 +15,7 @@ const envSchema = z.object({
   FONNTE_TOKEN: z.string().min(1, "FONNTE_TOKEN wajib diisi"),
   ADMIN_WA_NUMBER: z.string().min(1, "ADMIN_WA_NUMBER wajib diisi"),
   COVERAGE_RADIUS_KM: z.coerce.number().default(10),
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY wajib diisi"),
 });
 
 const result = envSchema.safeParse(process.env);
@@ -35,4 +36,5 @@ export const env = {
   fonnteToken: result.data.FONNTE_TOKEN,
   fonnteAdminTargets: result.data.ADMIN_WA_NUMBER,
   coverageRadiusKm: result.data.COVERAGE_RADIUS_KM,
+  geminiApiKey: result.data.GEMINI_API_KEY,
 };
