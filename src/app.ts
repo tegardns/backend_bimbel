@@ -9,6 +9,7 @@ import { coverageRouter } from "./routes/coverage.routes";
 import { quickRegistrationRouter } from "./routes/quick-registration.routes";
 import { aiRouter } from "./routes/ai.route";
 import { logicTestRouter } from "./routes/logic-test.route";
+import { settingsRouter } from "./routes/settings.route";
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use("/api/coverage", coverageRouter);
 app.use("/api/quick-registration", quickRegistrationRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/logic-test", logicTestRouter);
+app.use("/api/settings", settingsRouter);
 
 export { app };
